@@ -1,0 +1,18 @@
+[submodule "witness-checker"]
+	path = witness-checker
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/witness-checker.git
+[submodule "MicroRAM"]
+	path = MicroRAM
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/MicroRAM.git
+[submodule "grit"]
+	path = grit
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/grit.git
+[submodule "ffmpeg"]
+	path = ffmpeg
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/ffmpeg.git
+[submodule "llvm-passes"]
+	path = llvm-passes
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/llvm-passes.git
+[submodule "picolibc"]
+	path = picolibc
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/picolibc.git
