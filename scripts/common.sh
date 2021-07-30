@@ -51,7 +51,7 @@ build_witness_checker() {
 }
 
 clean_witness_checker() {
-    rm -r "$cc_dir/witness-checker/target"
+    rm -rf "$cc_dir/witness-checker/target"
 }
 
 
@@ -106,12 +106,13 @@ build_ffmpeg() {
     )
 }
 
-clean_grit() {
+clean_ffmpeg() {
     make -C $cc_dir/ffmpeg clean
 
     rm -rf \
         "$cc_dir/ffmpeg/build" \
-        "$cc_dir/ffmpeg/driver-link.ll"
+        "$cc_dir/ffmpeg/driver-link.ll" \
+        "$cc_dir/ffmpeg/driver"
 }
 
 run_ffmpeg() {

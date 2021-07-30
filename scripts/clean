@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/common.sh"
+clean_llvm_passes
+clean_picolibc
+clean_microram
+clean_witness_checker
+clean_grit
+clean_ffmpeg
