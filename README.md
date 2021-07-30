@@ -11,9 +11,9 @@ with scripts for building everything.
 
   ```
   internal evaluator: 222507 asserts passed, 0 failed; found 1 bugs; overall status: GOOD
-validating zkif...
-The statement is COMPLIANT with the specification!
-The statement is TRUE!
+  validating zkif...
+  The statement is COMPLIANT with the specification!
+  The statement is TRUE!
   ```
 
 * Run `scripts/run_ffmpeg` to build the FFmpeg example and generate a circuit.
