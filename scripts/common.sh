@@ -46,7 +46,7 @@ clean_microram() {
 build_witness_checker() {
     (
         cd "$cc_dir/witness-checker"
-        cargo build --release --features bellman
+        cargo build --release --features bellman,sieve_ir
     )
 }
 
@@ -90,7 +90,7 @@ run_grit() {
     (
         cd "$cc_dir/out/grit"
         ../../witness-checker/target/release/cheesecloth \
-            grit.cbor --stats --zkif-out zkif \
+            grit.cbor --stats --sieve-ir-out sieve \
             2>&1 | tee witness-checker.log
     )
 }
