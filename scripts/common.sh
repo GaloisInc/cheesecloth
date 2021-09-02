@@ -80,7 +80,7 @@ run_grit() {
     mkdir -p "$cc_dir/out/grit"
     (
         cd "$cc_dir/MicroRAM"
-        stack run compile -- \
+        time stack run compile -- \
             --from-llvm ../grit/driver-link.ll \
             6000 \
             -o ../out/grit/grit.cbor \
@@ -89,7 +89,7 @@ run_grit() {
     )
     (
         cd "$cc_dir/out/grit"
-        ../../witness-checker/target/release/cheesecloth \
+        time ../../witness-checker/target/release/cheesecloth \
             grit.cbor --stats --sieve-ir-out sieve \
             2>&1 | tee witness-checker.log
     )
