@@ -289,19 +289,19 @@ if (NOT MSVC)
   set(x86_64_SOURCES
     ${GENERIC_SOURCES}
     ${GENERIC_TF_SOURCES}
-    ${x86_ARCH_SOURCES}
-    x86_64/floatdidf.c
-    x86_64/floatdisf.c
-    x86_64/floatundidf.S
-    x86_64/floatundisf.S
+    #${x86_ARCH_SOURCES}
+    #x86_64/floatdidf.c
+    #x86_64/floatdisf.c
+    #x86_64/floatundidf.S
+    #x86_64/floatundisf.S
   )
 
   if (NOT ANDROID)
     set(x86_64_SOURCES
       ${x86_64_SOURCES}
-      ${x86_80_BIT_SOURCES}
-      x86_64/floatdixf.c
-      x86_64/floatundixf.S
+      #${x86_80_BIT_SOURCES}
+      #x86_64/floatdixf.c
+      #x86_64/floatundixf.S
     )
   endif()
 
@@ -311,42 +311,42 @@ if (NOT MSVC)
   if (WIN32)
     set(x86_64_SOURCES
       ${x86_64_SOURCES}
-      x86_64/chkstk.S
-      x86_64/chkstk2.S
+      #x86_64/chkstk.S
+      #x86_64/chkstk2.S
     )
   endif()
 
   set(i386_SOURCES
     ${GENERIC_SOURCES}
-    ${x86_ARCH_SOURCES}
-    i386/ashldi3.S
-    i386/ashrdi3.S
-    i386/divdi3.S
-    i386/floatdidf.S
-    i386/floatdisf.S
-    i386/floatundidf.S
-    i386/floatundisf.S
-    i386/lshrdi3.S
-    i386/moddi3.S
-    i386/muldi3.S
-    i386/udivdi3.S
-    i386/umoddi3.S
+    #${x86_ARCH_SOURCES}
+    #i386/ashldi3.S
+    #i386/ashrdi3.S
+    #i386/divdi3.S
+    #i386/floatdidf.S
+    #i386/floatdisf.S
+    #i386/floatundidf.S
+    #i386/floatundisf.S
+    #i386/lshrdi3.S
+    #i386/moddi3.S
+    #i386/muldi3.S
+    #i386/udivdi3.S
+    #i386/umoddi3.S
   )
 
   if (NOT ANDROID)
     set(i386_SOURCES
       ${i386_SOURCES}
       ${x86_80_BIT_SOURCES}
-      i386/floatdixf.S
-      i386/floatundixf.S
+      #i386/floatdixf.S
+      #i386/floatundixf.S
     )
   endif()
 
   if (WIN32)
     set(i386_SOURCES
       ${i386_SOURCES}
-      i386/chkstk.S
-      i386/chkstk2.S
+      #i386/chkstk.S
+      #i386/chkstk2.S
     )
   endif()
 else () # MSVC
@@ -355,11 +355,14 @@ else () # MSVC
   # Also use only MSVC compilable builtin implementations.
   set(x86_64_SOURCES
     ${GENERIC_SOURCES}
-    ${x86_ARCH_SOURCES}
-    x86_64/floatdidf.c
-    x86_64/floatdisf.c
+    #${x86_ARCH_SOURCES}
+    #x86_64/floatdidf.c
+    #x86_64/floatdisf.c
   )
-  set(i386_SOURCES ${GENERIC_SOURCES} ${x86_ARCH_SOURCES})
+  set(i386_SOURCES
+    ${GENERIC_SOURCES}
+    #${x86_ARCH_SOURCES}
+  )
 endif () # if (NOT MSVC)
 
 set(arm_SOURCES
