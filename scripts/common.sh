@@ -91,6 +91,7 @@ clean_witness_checker() {
 build_grit() {
     build_llvm_passes
     build_picolibc
+    build_compiler_rt
     (
         cd "$cc_dir/grit"
         fromager/build.sh microram
@@ -130,6 +131,7 @@ run_grit() {
 build_ffmpeg() {
     build_llvm_passes
     build_picolibc
+    build_compiler_rt
     (
         cd "$cc_dir/ffmpeg"
         [ -f Makefile ] || CVE-2013-0864/configure.sh
