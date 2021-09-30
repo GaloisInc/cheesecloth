@@ -36,8 +36,9 @@ build_compiler_rt() {
             # Setting CFLAGS=-flto is not enough, because compiler-rt tries to
             # force disable LTO via -fno-lto.  We prevent this by adding
             # -DCOMPILER_RT_HAS_FNO_LTO_FLAG=OFF.
-            CC=clang-9 CFLAGS=-flto cmake .. -G Ninja \
+            CC=clang${LLVM_SUFFIX} CFLAGS=-flto cmake .. -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
+                -DLLVM_CONFIG_PATH=llvm-config${LLVM_SUFFIX} \
                 -DCOMPILER_RT_STANDALONE_BUILD=ON \
                 -DCOMPILER_RT_BAREMETAL_BUILD=ON \
                 -DCOMPILER_RT_BUILD_CRT=OFF \
