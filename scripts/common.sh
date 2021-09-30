@@ -28,6 +28,39 @@ clean_picolibc() {
 }
 
 
+build_compiler_rt() {
+    mkdir -p "$cc_dir/llvm-project/compiler-rt/build"
+    (
+        cd "$cc_dir/llvm-project/compiler-rt/build"
+        if ! [ -f build.ninja ]; then
+            # Setting CFLAGS=-flto is not enough, because compiler-rt tries to
+            # force disable LTO via -fno-lto.  We prevent this by adding
+            # -DCOMPILER_RT_HAS_FNO_LTO_FLAG=OFF.
+            CC=clang${LLVM_SUFFIX} CFLAGS=-flto cmake .. -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DLLVM_CONFIG_PATH=llvm-config${LLVM_SUFFIX} \
+                -DCOMPILER_RT_STANDALONE_BUILD=ON \
+                -DCOMPILER_RT_BAREMETAL_BUILD=ON \
+                -DCOMPILER_RT_BUILD_CRT=OFF \
+                -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+                -DCOMPILER_RT_BUILD_XRAY=OFF \
+                -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+                -DCOMPILER_RT_BUILD_PROFILE=OFF \
+                -DCOMPILER_RT_BUILD_MEMPROF=OFF \
+                -DCOMPILER_RT_BUILD_ORC=OFF \
+                -DCOMPILER_RT_BUILD_GWP_ASAN=OFF \
+                -DCOMPILER_RT_HAS_FNO_LTO_FLAG=OFF
+        fi
+        ninja
+        cp -v lib/*/libclang_rt.builtins-x86_64.a .
+    )
+}
+
+clean_compiler_rt() {
+    rm -rf "$cc_dir/llvm-project/compiler-rt/build"
+}
+
+
 build_microram() {
     (
         cd "$cc_dir/MicroRAM"
@@ -60,6 +93,7 @@ clean_witness_checker() {
 build_grit() {
     build_llvm_passes
     build_picolibc
+    build_compiler_rt
     (
         cd "$cc_dir/grit"
         fromager/build.sh microram
@@ -99,6 +133,7 @@ run_grit() {
 build_ffmpeg() {
     build_llvm_passes
     build_picolibc
+    build_compiler_rt
     (
         cd "$cc_dir/ffmpeg"
         [ -f Makefile ] || CVE-2013-0864/configure.sh
