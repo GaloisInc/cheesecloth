@@ -3,7 +3,7 @@ with scripts for building everything.
 
 # Usage
 
-* Run `git submodule update --init` to initialize all submodules
+* Run `git submodule update --init --recursive` to initialize all submodules
 
 * Run `scripts/run_grit` to build all dependencies and generate ZKIF for the
   `grit` example.  (Note that the ZKIF output files are about 20GB.)  A
