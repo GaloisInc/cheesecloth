@@ -122,10 +122,11 @@ run_grit() {
             2>&1 | tee ../out/grit/microram.log
     )
     (
-        cd "$cc_dir/out/grit"
-        time ../../witness-checker/target/release/cheesecloth \
-            grit.cbor --stats --sieve-ir-out sieve \
-            2>&1 | tee witness-checker.log
+        out_dir="$cc_dir/out/grit"
+        cd "$cc_dir"
+        time witness-checker/target/release/cheesecloth \
+            $out_dir/grit.cbor --stats --sieve-ir-out $out_dir/sieve \
+            2>&1 | tee $out_dir/witness-checker.log
     )
 }
 
@@ -136,7 +137,7 @@ build_ffmpeg() {
     build_compiler_rt
     (
         cd "$cc_dir/ffmpeg"
-        [ -f Makefile ] || CVE-2013-0864/configure.sh
+        [ -f config.h ] || CVE-2013-0864/configure.sh
         DRIVER_CFLAGS='-DSILENT' CVE-2013-0864/build.sh microram
     )
 }
@@ -166,11 +167,57 @@ run_ffmpeg() {
             2>&1 | tee ../out/ffmpeg/microram.log
     )
     (
-        cd "$cc_dir/out/ffmpeg"
-        # Build the circuit but don't enable ZKIF output, since it's very
-        # expensive.
-        ../../witness-checker/target/release/cheesecloth \
-            ffmpeg.cbor --stats \
-            2>&1 | tee witness-checker.log
+        out_dir="$cc_dir/out/ffmpeg"
+        cd "$cc_dir"
+        time witness-checker/target/release/cheesecloth \
+            $out_dir/ffmpeg.cbor --stats --sieve-ir-out $out_dir/sieve \
+            2>&1 | tee $out_dir/witness-checker.log
+    )
+}
+
+build_openssl() {
+    build_llvm_passes
+    build_picolibc
+    build_compiler_rt
+    (
+        cd "$cc_dir/openssl"
+        if ! [ -f libssl.a ]; then
+            ./fromager-config.sh
+            make depend
+            make -C crypto
+            make -C ssl
+        fi
+    )
+    (
+        cd "$cc_dir/openssl-driver"
+        [ -f driver-link.ll ] || cc_instrument=1 cc_flatten_init=1 make all
+    )
+}
+
+clean_openssl() {
+    echo clean_openssl not yet implemented
+    exit 1
+}
+
+run_openssl() {
+    build_openssl
+    build_microram
+    build_witness_checker
+    mkdir -p "$cc_dir/out/openssl"
+    (
+        cd "$cc_dir/MicroRAM"
+        stack run compile -- \
+            --from-llvm ../openssl-driver/driver-link.ll \
+            2000000 \
+            -o ../out/openssl/openssl.cbor \
+            --verbose \
+            2>&1 | tee ../out/openssl/microram.log
+    )
+    (
+        out_dir="$cc_dir/out/openssl"
+        cd "$cc_dir"
+        time witness-checker/target/release/cheesecloth \
+            $out_dir/openssl.cbor --stats --sieve-ir-out $out_dir/sieve \
+            2>&1 | tee $out_dir/witness-checker.log
     )
 }
