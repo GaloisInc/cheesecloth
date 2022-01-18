@@ -216,7 +216,7 @@ run_openssl() {
     (
         out_dir="$cc_dir/out/openssl"
         cd "$cc_dir"
-        time witness-checker/target/release/cheesecloth \
+        /usr/bin/time witness-checker/target/release/cheesecloth \
             $out_dir/openssl.cbor --stats --sieve-ir-out $out_dir/sieve \
             2>&1 | tee $out_dir/witness-checker.log
     )
