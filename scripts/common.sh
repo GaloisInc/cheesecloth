@@ -208,7 +208,7 @@ run_openssl() {
         cd "$cc_dir/MicroRAM"
         stack run compile -- \
             --from-llvm ../openssl-driver/driver-link.ll \
-            2000000 \
+            1300000 \
             -o ../out/openssl/openssl.cbor \
             --verbose \
             2>&1 | tee ../out/openssl/microram.log
@@ -218,6 +218,7 @@ run_openssl() {
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
             $out_dir/openssl.cbor --stats --sieve-ir-out $out_dir/sieve \
+            --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
