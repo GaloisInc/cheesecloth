@@ -220,7 +220,8 @@ run_openssl() {
         out_dir="$cc_dir/out/openssl"
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
-            $out_dir/openssl.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/openssl.cbor --sieve-ir-out $out_dir/sieve \
+            --mode leak-tainted \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
