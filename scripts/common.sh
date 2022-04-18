@@ -208,7 +208,8 @@ run_openssl() {
         cd "$cc_dir/MicroRAM"
         stack run compile -- \
             --from-llvm ../openssl-driver/driver-link.ll \
-            1300000 \
+            1300000 --regs 11 --priv-segs 110000 \
+            --mode leak-tainted \
             -o ../out/openssl/openssl.cbor \
             --verbose \
             2>&1 | tee ../out/openssl/microram.log
