@@ -125,6 +125,7 @@ run_grit() {
         out_dir="$cc_dir/out/grit"
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
+            --skip-backend-validation \
             $out_dir/grit.cbor --stats --sieve-ir-out $out_dir/sieve \
             2>&1 | tee $out_dir/witness-checker.log
     )
@@ -170,6 +171,7 @@ run_ffmpeg() {
         out_dir="$cc_dir/out/ffmpeg"
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
+            --skip-backend-validation \
             $out_dir/ffmpeg.cbor --stats --sieve-ir-out $out_dir/sieve \
             2>&1 | tee $out_dir/witness-checker.log
     )
