@@ -18,7 +18,7 @@
 	url = git@gitlab-ext.galois.com:fromager/cheesecloth/picolibc.git
 [submodule "openssl"]
 	path = openssl
-	url = ../openssl.git
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/openssl.git
 [submodule "openssl-driver"]
 	path = openssl-driver
-	url = ../openssl-driver.git
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/openssl-driver.git
