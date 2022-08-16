@@ -175,6 +175,16 @@ run_ffmpeg() {
     )
 }
 
+build_matrixmul_simple() {
+    build_llvm_passes
+    build_picolibc
+    build_compiler_rt
+    (
+        cd "$cc_dir/matrixmul-simple"
+        [ -f driver-link.ll ] || cc_instrument=1 cc_flatten_init=1 make
+    )
+}
+
 build_openssl() {
     build_llvm_passes
     build_picolibc
@@ -197,6 +207,30 @@ build_openssl() {
 clean_openssl() {
     echo clean_openssl not yet implemented
     exit 1
+}
+
+run_matrixmul_simple() {
+    build_matrixmul_simple
+    build_microram
+    build_witness_checker
+    out_dir="$cc_dir/out/matrixmul-simple"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        stack run compile -- \
+            --from-llvm ../matrixmul-simple/driver-link.ll \
+            6000 \
+            -o ../out/matrixmul-simple/matrixmul-simple.cbor \
+            --verbose \
+            2>&1 | tee ../out/matrixmul-simple/microram.log
+    )
+    (
+        cd "$cc_dir"
+        /usr/bin/time witness-checker/target/release/cheesecloth \
+            $out_dir/matrixmul-simple.cbor --stats --sieve-ir-out $out_dir/sieve \
+            --skip-backend-validation \
+            2>&1 | tee $out_dir/witness-checker.log
+    )
 }
 
 run_openssl() {
