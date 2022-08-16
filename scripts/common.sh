@@ -214,7 +214,6 @@ run_matrixmul_simple() {
     build_microram
     build_witness_checker
     out_dir="$cc_dir/out/matrixmul-simple"
-    echo "## 1 ############################################"
     mkdir -p $out_dir
     (
         cd "$cc_dir/MicroRAM"
@@ -225,7 +224,6 @@ run_matrixmul_simple() {
             --verbose \
             2>&1 | tee ../out/matrixmul-simple/microram.log
     )
-    echo "## 2 ############################################"
     (
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
