@@ -181,7 +181,7 @@ build_matrixmul_simple() {
     build_compiler_rt
     (
         cd "$cc_dir/matrixmul-simple"
-        [ -f driver-link.ll ] || cc_instrument=1 cc_flatten_init=1 make
+        [ -f driver-link.ll ] || cc_instrument=1 make
     )
 }
 
