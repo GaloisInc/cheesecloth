@@ -181,7 +181,7 @@ build_matrixmul_simple() {
     build_compiler_rt
     (
         cd "$cc_dir/matrixmul-simple"
-        [ -f driver-link.ll ] || cc_instrument=1 cc_flatten_init=1 make
+        [ -f driver-link.ll ] || cc_instrument=1 make
     )
 }
 
@@ -219,7 +219,7 @@ run_matrixmul_simple() {
         cd "$cc_dir/MicroRAM"
         stack run compile -- \
             --from-llvm ../matrixmul-simple/driver-link.ll \
-            6000 \
+            6100 \
             -o ../out/matrixmul-simple/matrixmul-simple.cbor \
             --verbose \
             2>&1 | tee ../out/matrixmul-simple/microram.log
