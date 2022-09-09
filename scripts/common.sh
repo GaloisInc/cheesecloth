@@ -200,7 +200,7 @@ run_ffmpeg() {
 
 build_matrixmul_simple() {
     build_llvm_passes
-    build_picolibc
+    build_picolibc_nopoison
     build_compiler_rt
     (
         cd "$cc_dir/matrixmul-simple"

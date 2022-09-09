@@ -9,7 +9,7 @@ NATIVE_CC := gcc -I$(NATIVE_INCLUDE)
 # Settings for the cheesecloth build.
 OUT := ./out
 SOURCES := $(shell find ./src/ -name '*.c')
-PICOLIBC_HOME := ../picolibc/build/image/picolibc/x86_64-unknown-fromager
+PICOLIBC_HOME := $(PICOLIBC_NOPOISON_BUILD)/image/picolibc/x86_64-unknown-fromager
 CLANG_DIR=$(shell clang${LLVM_SUFFIX} -print-resource-dir)
 CFLAGS=-flto -mprefer-vector-width=1 \
     -nostdinc                         \
