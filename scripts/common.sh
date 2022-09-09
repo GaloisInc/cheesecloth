@@ -1,4 +1,4 @@
-cc_dir="$(dirname "$0")"/..
+cc_dir=$(cd `dirname "$0"`/.. && pwd)
 
 export LLVM_SUFFIX=-9
 
