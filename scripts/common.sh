@@ -2,6 +2,10 @@ cc_dir=$(cd `dirname "$0"`/.. && pwd)
 
 export LLVM_SUFFIX=-9
 
+# Exported paths to picolibc build directories for use in e.g.
+# Makefiles.
+export PICOLIBC_DEFAULT_BUILD="$cc_dir/picolibc/build"
+export PICOLIBC_NOPOISON_BUILD="$cc_dir/picolibc/build-nopoison"
 
 build_llvm_passes() {
     make -C "$cc_dir/llvm-passes" passes.so
@@ -11,11 +15,14 @@ clean_llvm_passes() {
     rm -fv "$cc_dir/llvm-passes/passes.so"
 }
 
-
+# Build picolibc with the default build settings.
+#
+# When using this, use $PICOLIBC_DEFAULT_BUILD as your picolibc
+# directory.
 build_picolibc() {
-    mkdir -p "$cc_dir/picolibc/build"
+    mkdir -p $PICOLIBC_DEFAULT_BUILD
     (
-        cd "$cc_dir/picolibc/build"
+        cd $PICOLIBC_DEFAULT_BUILD
         if ! [ -f build.ninja ]; then
             ../scripts/do-fromager-configure
         fi
@@ -23,8 +30,24 @@ build_picolibc() {
     )
 }
 
+# Build picolibc with malloc poisoning disabled for input programs that
+# don't need or want it.
+#
+# When using this, use $PICOLIBC_NOPOISON_BUILD as your picolibc
+# directory.
+build_picolibc_nopoison() {
+    mkdir -p $PICOLIBC_NOPOISON_BUILD
+    (
+        cd $PICOLIBC_NOPOISON_BUILD
+        if ! [ -f build.ninja ]; then
+            ../scripts/do-fromager-configure -Ddisable-malloc-poison=true
+        fi
+        ninja install
+    )
+}
+
 clean_picolibc() {
-    rm -rf "$cc_dir/picolibc/build"
+    rm -rf $PICOLIBC_DEFAULT_BUILD $PICOLIBC_NOPOISON_BUILD
 }
 
 
