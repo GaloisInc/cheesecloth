@@ -20,9 +20,9 @@ clean_llvm_passes() {
 # When using this, use $PICOLIBC_DEFAULT_BUILD as your picolibc
 # directory.
 build_picolibc() {
-    mkdir -p $PICOLIBC_DEFAULT_BUILD
+    mkdir -p "$PICOLIBC_DEFAULT_BUILD"
     (
-        cd $PICOLIBC_DEFAULT_BUILD
+        cd "$PICOLIBC_DEFAULT_BUILD"
         if ! [ -f build.ninja ]; then
             ../scripts/do-fromager-configure
         fi
@@ -36,9 +36,9 @@ build_picolibc() {
 # When using this, use $PICOLIBC_NOPOISON_BUILD as your picolibc
 # directory.
 build_picolibc_nopoison() {
-    mkdir -p $PICOLIBC_NOPOISON_BUILD
+    mkdir -p "$PICOLIBC_NOPOISON_BUILD"
     (
-        cd $PICOLIBC_NOPOISON_BUILD
+        cd "$PICOLIBC_NOPOISON_BUILD"
         if ! [ -f build.ninja ]; then
             ../scripts/do-fromager-configure -Ddisable-malloc-poison=true
         fi
@@ -47,7 +47,7 @@ build_picolibc_nopoison() {
 }
 
 clean_picolibc() {
-    rm -rf $PICOLIBC_DEFAULT_BUILD $PICOLIBC_NOPOISON_BUILD
+    rm -rf "$PICOLIBC_DEFAULT_BUILD" "$PICOLIBC_NOPOISON_BUILD"
 }
 
 
