@@ -1,6 +1,6 @@
 cc_dir=$(cd `dirname "$0"`/.. && pwd)
 
-export LLVM_SUFFIX=-9
+export LLVM_SUFFIX=-11
 
 # Exported paths to picolibc build directories for use in e.g.
 # Makefiles.
@@ -59,8 +59,22 @@ build_compiler_rt() {
             # Setting CFLAGS=-flto is not enough, because compiler-rt tries to
             # force disable LTO via -fno-lto.  We prevent this by adding
             # -DCOMPILER_RT_HAS_FNO_LTO_FLAG=OFF.
-            CC=clang${LLVM_SUFFIX} CFLAGS=-flto cmake .. -G Ninja \
+            #
+            # CMake tries to check whether the C compiler "works", which fails
+            # in this cross-compiling configuration.  As a hack, we bypass this
+            # check by setting CMAKE_C_COMPILER_WORKS.  There's probably some
+            # better way of doing this, but this approach is partially
+            # consistent with the compiler-rt docs:
+            # https://llvm.org/docs/HowToCrossCompileBuiltinsOnArm.html
+            cmake .. -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_ASM_COMPILER_TARGET=riscv64-unknown-elf \
+                -DCMAKE_ASM_FLAGS='-march=rv64im -flto' \
+                -DCMAKE_C_COMPILER=clang${LLVM_SUFFIX} \
+                -DCMAKE_C_COMPILER_TARGET=riscv64-unknown-elf \
+                -DCMAKE_C_FLAGS='-march=rv64im -flto -gcc-toolchain /var/empty' \
+                -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
+                -DCMAKE_C_COMPILER_WORKS=ON \
                 -DLLVM_CONFIG_PATH=llvm-config${LLVM_SUFFIX} \
                 -DCOMPILER_RT_STANDALONE_BUILD=ON \
                 -DCOMPILER_RT_BAREMETAL_BUILD=ON \
@@ -72,10 +86,11 @@ build_compiler_rt() {
                 -DCOMPILER_RT_BUILD_MEMPROF=OFF \
                 -DCOMPILER_RT_BUILD_ORC=OFF \
                 -DCOMPILER_RT_BUILD_GWP_ASAN=OFF \
-                -DCOMPILER_RT_HAS_FNO_LTO_FLAG=OFF
+                -DCOMPILER_RT_HAS_FNO_LTO_FLAG=OFF \
+                -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
         fi
         ninja
-        cp -v lib/*/libclang_rt.builtins-x86_64.a .
+        cp -v lib/*/libclang_rt.builtins-riscv64.a .
     )
 }
 
@@ -120,6 +135,7 @@ build_grit() {
     (
         cd "$cc_dir/grit"
         fromager/build.sh microram
+        llc${LLVM_SUFFIX} driver-link.ll
     )
 }
 
@@ -127,6 +143,7 @@ clean_grit() {
     rm -rf \
         "$cc_dir/grit/build" \
         "$cc_dir/grit/driver-link.ll" \
+        "$cc_dir/grit/driver-link.s" \
         "$cc_dir/grit/"lib*.a
 }
 
@@ -138,9 +155,8 @@ run_grit() {
     (
         cd "$cc_dir/MicroRAM"
         time stack run compile -- \
-            --from-llvm ../grit/driver-link.ll \
-            4800 \
-            --priv-segs 250 \
+            --riscv ../grit/driver-link.s \
+            6000 \
             -o ../out/grit/grit.cbor \
             --verbose \
             2>&1 | tee ../out/grit/microram.log
