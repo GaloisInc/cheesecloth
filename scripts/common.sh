@@ -12,7 +12,7 @@ build_llvm_passes() {
 }
 
 clean_llvm_passes() {
-    rm -fv "$cc_dir/llvm-passes/passes.so"
+    rm -fv "$cc_dir/llvm-passes/passes.so" "$cc_dir/llvm-passes/"*.o
 }
 
 # Build picolibc with the default build settings.
@@ -188,7 +188,8 @@ clean_ffmpeg() {
     rm -rf \
         "$cc_dir/ffmpeg/build" \
         "$cc_dir/ffmpeg/driver-link.ll" \
-        "$cc_dir/ffmpeg/driver"
+        "$cc_dir/ffmpeg/driver" \
+        "$cc_dir/ffmpeg/config.h"
 }
 
 run_ffmpeg() {
