@@ -156,7 +156,7 @@ run_grit() {
         cd "$cc_dir/MicroRAM"
         time stack run compile -- \
             --riscv ../grit/driver-link.s \
-            3700 \
+            3800 \
             -o ../out/grit/grit.cbor \
             --verbose \
             2>&1 | tee ../out/grit/microram.log
@@ -178,7 +178,8 @@ build_ffmpeg() {
     (
         cd "$cc_dir/ffmpeg"
         [ -f config.h ] || CVE-2013-0864/configure.sh
-        DRIVER_CFLAGS='-DSILENT' CVE-2013-0864/build.sh microram
+        DRIVER_CFLAGS='-DSILENT' cc_flatten_init=1 CVE-2013-0864/build.sh microram
+        llc${LLVM_SUFFIX} driver-link.ll
     )
 }
 
@@ -188,6 +189,7 @@ clean_ffmpeg() {
     rm -rf \
         "$cc_dir/ffmpeg/build" \
         "$cc_dir/ffmpeg/driver-link.ll" \
+        "$cc_dir/ffmpeg/driver-link.s" \
         "$cc_dir/ffmpeg/driver" \
         "$cc_dir/ffmpeg/config.h"
 }
@@ -200,9 +202,9 @@ run_ffmpeg() {
     (
         cd "$cc_dir/MicroRAM"
         stack run compile -- \
-            --from-llvm ../ffmpeg/driver-link.ll \
-            79000 \
-            --priv-segs 6700 \
+            --riscv ../ffmpeg/driver-link.s \
+            28000 \
+            --priv-segs 2700 \
             -o ../out/ffmpeg/ffmpeg.cbor \
             --verbose \
             2>&1 | tee ../out/ffmpeg/microram.log
