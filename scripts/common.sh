@@ -156,7 +156,7 @@ run_grit() {
         cd "$cc_dir/MicroRAM"
         time stack run compile -- \
             --riscv ../grit/driver-link.s \
-            6000 \
+            3700 \
             -o ../out/grit/grit.cbor \
             --verbose \
             2>&1 | tee ../out/grit/microram.log
