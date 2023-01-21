@@ -139,7 +139,8 @@ run_grit() {
         cd "$cc_dir/MicroRAM"
         time stack run compile -- \
             --from-llvm ../grit/driver-link.ll \
-            6000 \
+            4800 \
+            --priv-segs 250 \
             -o ../out/grit/grit.cbor \
             --verbose \
             2>&1 | tee ../out/grit/microram.log
@@ -183,8 +184,8 @@ run_ffmpeg() {
         cd "$cc_dir/MicroRAM"
         stack run compile -- \
             --from-llvm ../ffmpeg/driver-link.ll \
-            80000 \
-            --priv-segs 6800 \
+            79000 \
+            --priv-segs 6700 \
             -o ../out/ffmpeg/ffmpeg.cbor \
             --verbose \
             2>&1 | tee ../out/ffmpeg/microram.log
