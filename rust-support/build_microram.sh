@@ -28,7 +28,9 @@ RUSTC_BOOTSTRAP=1 cargo +1.56.0 rustc \
 bc_path="$(find target -name "$name-*.bc")"
 cp "$bc_path" "build/$name.bc"
 
-PICOLIBC_HOME="$support_dir/../picolibc/build/image/picolibc/riscv64-unknown-fromager"
+if [ -z "$PICOLIBC_HOME" ]; then
+    PICOLIBC_HOME="$support_dir/../picolibc/build/image/picolibc/riscv64-unknown-fromager"
+fi
 
 case $name in
     secrets)

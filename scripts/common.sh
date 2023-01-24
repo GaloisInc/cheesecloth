@@ -6,14 +6,29 @@ export LLVM_SUFFIX=-11
 # Makefiles.
 export PICOLIBC_DEFAULT_BUILD="$cc_dir/picolibc/build"
 export PICOLIBC_NOPOISON_BUILD="$cc_dir/picolibc/build-nopoison"
+export PICOLIBC_LLVM_13_BUILD="$cc_dir/picolibc/build-llvm-13"
+
+
+build_llvm_passes_common() {
+    local suffix
+    [ -n "$llvm_version" ] && suffix="-$llvm_version"
+    LLVM_SUFFIX="${suffix}" BUILD_DIR="build${suffix}" \
+        make -C "$cc_dir/llvm-passes" "build${suffix}/passes.so"
+}
 
 build_llvm_passes() {
-    make -C "$cc_dir/llvm-passes" passes.so
+    : ${llvm_version:=11}
+    build_llvm_passes_common
+}
+
+build_llvm_passes_13() {
+    llvm_version=13 build_llvm_passes_common
 }
 
 clean_llvm_passes() {
-    rm -fv "$cc_dir/llvm-passes/passes.so" "$cc_dir/llvm-passes/"*.o
+    rm -fv "$cc_dir"/llvm-passes/build*/passes.so "$cc_dir"/llvm-passes/build*/*.o
 }
+
 
 # Build picolibc with the default build settings.
 #
@@ -46,15 +61,36 @@ build_picolibc_nopoison() {
     )
 }
 
+
+# Build picolibc with LLVM 13 using the default build settings.
+#
+# When using this, use $PICOLIBC_LLVM_13_BUILD as your picolibc
+# directory.
+build_picolibc_13() {
+    mkdir -p "$PICOLIBC_LLVM_13_BUILD"
+    (
+        cd "$PICOLIBC_LLVM_13_BUILD"
+        if ! [ -f build.ninja ]; then
+            LLVM_SUFFIX=-13 ../scripts/do-fromager-configure
+        fi
+        LLVM_SUFFIX=-13 ninja install
+    )
+}
+
 clean_picolibc() {
-    rm -rf "$PICOLIBC_DEFAULT_BUILD" "$PICOLIBC_NOPOISON_BUILD"
+    rm -rf \
+        "$PICOLIBC_DEFAULT_BUILD" \
+        "$PICOLIBC_NOPOISON_BUILD" \
+        "$PICOLIBC_LLVM_13_BUILD"
 }
 
 
-build_compiler_rt() {
-    mkdir -p "$cc_dir/llvm-project/compiler-rt/build"
+build_compiler_rt_common() {
+    local suffix
+    [ -n "$llvm_version" ] && suffix="-$llvm_version"
+    mkdir -p "$cc_dir/llvm-project/compiler-rt/build${suffix}"
     (
-        cd "$cc_dir/llvm-project/compiler-rt/build"
+        cd "$cc_dir/llvm-project/compiler-rt/build${suffix}"
         if ! [ -f build.ninja ]; then
             # Setting CFLAGS=-flto is not enough, because compiler-rt tries to
             # force disable LTO via -fno-lto.  We prevent this by adding
@@ -70,12 +106,12 @@ build_compiler_rt() {
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_ASM_COMPILER_TARGET=riscv64-unknown-elf \
                 -DCMAKE_ASM_FLAGS='-march=rv64im -flto' \
-                -DCMAKE_C_COMPILER=clang${LLVM_SUFFIX} \
+                -DCMAKE_C_COMPILER=clang${suffix} \
                 -DCMAKE_C_COMPILER_TARGET=riscv64-unknown-elf \
                 -DCMAKE_C_FLAGS='-march=rv64im -flto -gcc-toolchain /var/empty' \
                 -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
                 -DCMAKE_C_COMPILER_WORKS=ON \
-                -DLLVM_CONFIG_PATH=llvm-config${LLVM_SUFFIX} \
+                -DLLVM_CONFIG_PATH=llvm-config${suffix} \
                 -DCOMPILER_RT_STANDALONE_BUILD=ON \
                 -DCOMPILER_RT_BAREMETAL_BUILD=ON \
                 -DCOMPILER_RT_BUILD_CRT=OFF \
@@ -94,8 +130,17 @@ build_compiler_rt() {
     )
 }
 
+build_compiler_rt() {
+    : ${llvm_version:=11}
+    build_compiler_rt_common
+}
+
+build_compiler_rt_13() {
+    llvm_version=13 build_compiler_rt_common
+}
+
 clean_compiler_rt() {
-    rm -rf "$cc_dir/llvm-project/compiler-rt/build"
+    rm -rf "$cc_dir/llvm-project/compiler-rt/build"*
 }
 
 
@@ -298,5 +343,22 @@ run_openssl() {
             $out_dir/openssl.cbor --stats --sieve-ir-out $out_dir/sieve \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
+    )
+}
+
+
+build_rust_example() {
+    build_llvm_passes_13
+    build_picolibc_13
+    build_compiler_rt_13
+    (
+        export CHEESECLOTH_HOME="$cc_dir"
+        export COMPILER_RT_HOME="$cc_dir/llvm-project/compiler-rt/build-13"
+        export LLVM_PASSES_HOME="$cc_dir/llvm-passes/build-13"
+        export PICOLIBC_HOME="$PICOLIBC_LLVM_13_BUILD/image/picolibc/riscv64-unknown-fromager"
+
+        cd "$cc_dir/rust-example"
+        ../rust-support/build_microram.sh secrets secrets
+        ../rust-support/build_microram.sh rust_example
     )
 }
