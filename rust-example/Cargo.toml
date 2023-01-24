@@ -1,0 +1,32 @@
+[package]
+name = "cheesecloth-rust-example"
+version = "0.1.0"
+authors = ["Stuart Pernsteiner <spernsteiner@galois.com>"]
+edition = "2018"
+
+[dependencies]
+cheesecloth-rust-example-secret-decls = { path = "secret-decls" }
+cheesecloth-rust-example-secrets = { path = "secrets", optional = true }
+
+cheesecloth-alloc = { path = "../rust-support/cheesecloth-alloc", optional = true }
+
+[features]
+# This is enabled when building for MicroRAM.
+microram = ["cheesecloth-alloc"]
+# Enable to include secrets inline in the build.  This is useful when doing
+# native builds for testing, but can't be used when building to run in zero
+# knowledge, as the optimizer might consult the secret values and thus produce
+# different results on the prover and verifier.
+inline-secrets = ["cheesecloth-rust-example-secrets"]
+
+[workspace]
+members = ["secret-decls", "secrets"]
+
+[profile.release]
+lto = true
+panic = "abort"
+incremental = false
+codegen-units = 1
+
+[[bin]]
+name = "rust_example"
