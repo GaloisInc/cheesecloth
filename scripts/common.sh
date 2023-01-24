@@ -362,3 +362,27 @@ build_rust_example() {
         ../rust-support/build_microram.sh rust_example
     )
 }
+
+run_rust_example() {
+    build_rust_example
+    build_microram
+    build_witness_checker
+    out_dir="$cc_dir/out/rust-example"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        stack run compile -- \
+            --riscv ../rust-example/build/rust_example.s \
+            1000 \
+            -o ../out/rust-example/rust-example.cbor \
+            --verbose \
+            2>&1 | tee ../out/rust-example/microram.log
+    )
+    (
+        cd "$cc_dir"
+        /usr/bin/time witness-checker/target/release/cheesecloth \
+            $out_dir/rust-example.cbor --stats --sieve-ir-out $out_dir/sieve \
+            --skip-backend-validation \
+            2>&1 | tee $out_dir/witness-checker.log
+    )
+}
