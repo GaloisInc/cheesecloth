@@ -11,7 +11,7 @@ else
     package_dir=.
 fi
 
-features="microram"
+features="${features-},microram"
 
 mkdir -p build
 
