@@ -114,9 +114,16 @@ run_grit() {
     mkdir -p "$cc_dir/out/grit"
     (
         cd "$cc_dir/MicroRAM"
+	# 4716 steps with public pc (baseline)
+        args="4716 --priv-segs 249"
+        # no sparsity
+        # args="4716 --priv-segs 249 --sparsity 1"
+        # no public-pc
+        # args="4716 --pub-seg-mode none"
         time stack run compile -- \
             --from-llvm ../grit/driver-link.ll \
-            6000 \
+            $args \
+            --regs 11 \
             -o ../out/grit/grit.cbor \
             --verbose \
             2>&1 | tee ../out/grit/microram.log
@@ -159,10 +166,15 @@ run_ffmpeg() {
     mkdir -p "$cc_dir/out/ffmpeg"
     (
         cd "$cc_dir/MicroRAM"
+        # 78983 steps with public pc (baseline)
+        # args="78983 --priv-segs 6652"
+        # no sparsity
+        # args="78983 --priv-segs 6652 --sparsity 1"
+        # no public-pc
+        args="78983 --pub-seg-mode none"
         stack run compile -- \
             --from-llvm ../ffmpeg/driver-link.ll \
-            80000 \
-            --priv-segs 6800 \
+            $args \
             -o ../out/ffmpeg/ffmpeg.cbor \
             --verbose \
             2>&1 | tee ../out/ffmpeg/microram.log
