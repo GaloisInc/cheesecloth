@@ -8,3 +8,4 @@ clean_microram
 clean_witness_checker
 clean_grit
 clean_ffmpeg
+clean_scuttlebutt

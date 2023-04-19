@@ -210,7 +210,9 @@ run_grit() {
         out_dir="$cc_dir/out/grit"
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
-            $out_dir/grit.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/grit.cbor \
+            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -258,7 +260,9 @@ run_ffmpeg() {
         out_dir="$cc_dir/out/ffmpeg"
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
-            $out_dir/ffmpeg.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/ffmpeg.cbor \
+            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -315,7 +319,8 @@ run_matrixmul_simple() {
     (
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
-            $out_dir/matrixmul-simple.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/matrixmul-simple.cbor \
+            --boolean-sieve-ir-v2-out $out_dir/sieve \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
@@ -340,7 +345,8 @@ run_openssl() {
         out_dir="$cc_dir/out/openssl"
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
-            $out_dir/openssl.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/openssl.cbor \
+            --boolean-sieve-ir-v2-out $out_dir/sieve \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
@@ -381,7 +387,203 @@ run_rust_example() {
     (
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
-            $out_dir/rust-example.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/rust-example.cbor \
+            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --skip-backend-validation \
+            2>&1 | tee $out_dir/witness-checker.log
+    )
+}
+
+
+# Scuttlebutt MicroRAM invocations
+scuttlebutt_microram_attacker() {
+    # Should be run from the MicroRAM/ directory
+    out_dir="$cc_dir/out/scuttlebutt"
+    echo ' >>> microram: attacker'
+    stack exec compile -- \
+        --domain attacker \
+        --domain-input-riscv ../scuttlebutt-attack/build/attacker.s \
+        --domain-secret 22000,160 \
+        --domain kernel \
+        --domain-input-riscv ../scuttlebutt-attack/build/kernel_attacker.s \
+        --domain-privileged \
+        110000 \
+        --pub-seg-mode none \
+        -o $out_dir/ssb-attacker.cbor \
+        --verbose \
+        2>&1 | tee $out_dir/microram-attacker.log
+}
+
+scuttlebutt_microram_victim() {
+    # Should be run from the MicroRAM/ directory
+    out_dir="$cc_dir/out/scuttlebutt"
+    echo ' >>> microram: victim'
+    stack exec compile -- \
+        --riscv ../scuttlebutt-attack/build/victim.s \
+        4400000 \
+        -o $out_dir/ssb-victim.cbor \
+        --verbose \
+        2>&1 | tee $out_dir/microram-victim.log
+}
+
+scuttlebutt_microram_checker() {
+    # Should be run from the MicroRAM/ directory
+    out_dir="$cc_dir/out/scuttlebutt"
+    echo ' >>> microram: checker'
+    stack exec compile -- \
+        --riscv ../scuttlebutt-attack/build/checker.s \
+        490 \
+        -o $out_dir/ssb-checker.cbor \
+        --verbose \
+        2>&1 | tee $out_dir/microram-checker.log
+}
+
+# Build scuttlebutt `attacker.s` and dummy `kernel_attacker.s` only.
+build_scuttlebutt_attacker() {
+    build_llvm_passes_13
+    build_picolibc_13
+    build_compiler_rt_13
+    (
+        export CHEESECLOTH_HOME="$cc_dir"
+        export COMPILER_RT_HOME="$cc_dir/llvm-project/compiler-rt/build-13"
+        export LLVM_PASSES_HOME="$cc_dir/llvm-passes/build-13"
+        export PICOLIBC_HOME="$PICOLIBC_LLVM_13_BUILD/image/picolibc/riscv64-unknown-fromager"
+
+        cd "$cc_dir/scuttlebutt-attack"
+        ./build.sh attacker
+        ./build.sh secrets_dummy
+        ssb_use_dummy_secrets=1 ./build.sh kernel_attacker
+    )
+}
+
+# Run MicroRAM to produce `ssb-attacker.cbor`.
+build_scuttlebutt_attacker_cbor() {
+    build_scuttlebutt_attacker
+    build_microram
+    build_witness_checker
+    out_dir="$cc_dir/out/scuttlebutt"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        scuttlebutt_microram_attacker
+    )
+}
+
+# Regenerate scuttlebutt parameters after building a fresh `attacker.s`.
+regenerate_scuttlebutt() {
+    build_scuttlebutt_attacker_cbor
+
+    build_witness_checker
+    (
+        cd "$cc_dir/scuttlebutt-attack"
+        # Update commitment randomness and seed, and create `commitment.env`.
+        COMMITMENT_TOOL=$cc_dir/witness-checker/target/release/commitment_tool \
+            python3 update_commitment.py $cc_dir/out/scuttlebutt/ssb-attacker.cbor
+        # Record communication trace and update secrets.
+        ./record.sh
+    )
+}
+
+# Build all scuttlebutt asm files.
+build_scuttlebutt() {
+    build_llvm_passes_13
+    build_picolibc_13
+    build_compiler_rt_13
+
+    if ! [ -f "$cc_dir/scuttlebutt-attack/commitment.env" ]; then
+        regenerate_scuttlebutt
+    fi
+
+    (
+        export CHEESECLOTH_HOME="$cc_dir"
+        export COMPILER_RT_HOME="$cc_dir/llvm-project/compiler-rt/build-13"
+        export LLVM_PASSES_HOME="$cc_dir/llvm-passes/build-13"
+        export PICOLIBC_HOME="$PICOLIBC_LLVM_13_BUILD/image/picolibc/riscv64-unknown-fromager"
+
+        cd "$cc_dir/scuttlebutt-attack"
+        ./build.sh secrets
+        ./build.sh kernel_attacker
+        ./build.sh victim
+        ./build.sh checker
+        # We specifically avoid building `attacker.s` here.  We build it once
+        # as part of `regenerate_scuttlebutt`, commit to it, and never rebuild
+        # it again.  This helps us avoid potential issues with nondeterministic
+        # builds.
+    )
+}
+
+clean_scuttlebutt() {
+    rm -rf \
+        "$cc_dir"/scuttlebutt-attack/build \
+        "$cc_dir"/scuttlebutt-attack/commitment.env \
+        "$cc_dir"/scuttlebutt-attack/constants/lib.rs \
+        "$cc_dir"/scuttlebutt-attack/secrets/lib.rs
+}
+
+run_scuttlebutt() {
+    build_scuttlebutt
+    build_microram
+    build_witness_checker
+    out_dir="$cc_dir/out/scuttlebutt"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        scuttlebutt_microram_checker
+        scuttlebutt_microram_attacker
+        scuttlebutt_microram_victim
+    )
+
+    (
+        cd "$cc_dir"
+
+        equivs=''
+        set_uncommitted=''
+        mem_prefix='.rodata.secret.ssb_'
+        for name in events num_valid_events channels threads data; do
+            set_uncommitted="
+                $set_uncommitted
+                --set-uncommitted $mem_prefix$name
+            "
+            equivs="
+                $equivs
+                --equiv checker.$mem_prefix$name==attacker.$mem_prefix$name
+                --equiv checker.$mem_prefix$name==victim.$mem_prefix$name
+            "
+        done
+
+        echo ' >>> add commitment'
+        . scuttlebutt-attack/commitment.env
+        witness-checker/target/release/commitment_tool \
+            update-cbor \
+            --set-commitment "$ssb_commitment" \
+            --set-randomness "$ssb_randomness" \
+            --randomness-symbol CC_COMMITMENT_RANDOMNESS \
+            --randomness-length 32 \
+            $set_uncommitted \
+            --set-privilege-levels \
+            -o "$out_dir"/ssb-attacker-committed.cbor \
+            "$out_dir"/ssb-attacker.cbor \
+            2>&1 | tee $out_dir/commitment.log
+
+        echo ' >>> combine executions'
+        time python3 witness-checker/scripts/multi_exec.py \
+            --exec checker="$out_dir"/ssb-checker.cbor \
+            --exec attacker="$out_dir"/ssb-attacker-committed.cbor \
+            --exec victim="$out_dir"/ssb-victim.cbor \
+            $equivs \
+            --verbose \
+            --out "$out_dir"/ssb.cbor \
+            2>&1 | tee $out_dir/multi_exec.log
+    )
+
+    (
+        cd "$cc_dir"
+        echo ' >>> witness-checker'
+        /usr/bin/time witness-checker/target/release/cheesecloth \
+            $out_dir/ssb.cbor \
+            --validate-only \
+            --expect-write 0xfffffffffffffff0 \
+            --boolean-sieve-ir-v2-out $out_dir/sieve \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )

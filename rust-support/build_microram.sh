@@ -28,24 +28,29 @@ RUSTC_BOOTSTRAP=1 cargo +1.56.0 rustc \
 bc_path="$(find target -name "$name-*.bc")"
 cp "$bc_path" "build/$name.bc"
 
-if [ -z "$PICOLIBC_HOME" ]; then
+if [ -z "${PICOLIBC_HOME-}" ]; then
     PICOLIBC_HOME="$support_dir/../picolibc/build/image/picolibc/riscv64-unknown-fromager"
 fi
+
 
 case $name in
     secrets)
         # Don't link
-        ;;
-    *)
-        # Link normally, including secrets
-        cc_objects="build/$name.bc" \
-            cc_secret_objects="build/secrets.bc" \
-            cc_build_dir="build/$name" \
-            cc_microram_output="build/$name.ll" \
-            LLVM_SUFFIX=-13 \
-            LLVM_OPT_FLAGS=-enable-new-pm=0 \
-            COMPILER_RT_HOME=$support_dir/../llvm-project/compiler-rt/build-13 \
-            bash -x $PICOLIBC_HOME/lib/fromager-link.sh microram
-        llc-13 "build/$name.ll" -o "build/$name.s" -relocation-model=static -mattr=+m
+        : "${cc_link=0}"
         ;;
 esac
+
+: "${cc_link=1}"
+: "${cc_secret_objects=build/secrets.bc}"
+
+if [[ "$cc_link" -ne 0 ]]; then
+    cc_objects="build/$name.bc" \
+        cc_secret_objects="$cc_secret_objects" \
+        cc_build_dir="build/$name" \
+        cc_microram_output="build/$name.ll" \
+        LLVM_SUFFIX=-13 \
+        LLVM_OPT_FLAGS=-enable-new-pm=0 \
+        COMPILER_RT_HOME=$support_dir/../llvm-project/compiler-rt/build-13 \
+        bash -x $PICOLIBC_HOME/lib/fromager-link.sh microram
+    llc-13 "build/$name.ll" -o "build/$name.s" -relocation-model=static -mattr=+m
+fi
