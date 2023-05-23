@@ -114,8 +114,13 @@ run_grit() {
     mkdir -p "$cc_dir/out/grit"
     (
         cd "$cc_dir/MicroRAM"
-	# 4716 steps with public pc (baseline)
-        args="4716 --priv-segs 249"
+        if [ "$#" -lt 1 ]; then
+            args="4716 --priv-segs 249"
+        else
+            args=$1
+        fi
+        # 4716 steps with public pc (baseline)
+        # args="4716 --priv-segs 249"
         # no sparsity
         # args="4716 --priv-segs 249 --sparsity 1"
         # no public-pc
@@ -133,7 +138,7 @@ run_grit() {
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
             --skip-backend-validation \
-            $out_dir/grit.cbor --stats --sieve-ir-out $out_dir/sieve \
+            $out_dir/grit.cbor --boolean-sieve-ir-v2-out $out_dir/sieve \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -232,7 +237,7 @@ run_openssl() {
         out_dir="$cc_dir/out/openssl"
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
-            $out_dir/openssl.cbor --sieve-ir-out $out_dir/sieve \
+            $out_dir/openssl.cbor --boolean-sieve-ir-v2-out $out_dir/sieve \
             --mode leak-tainted \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log

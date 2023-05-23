@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/common.sh"
+run_grit "4716 --pub-seg-mode none"
