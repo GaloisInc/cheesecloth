@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/common.sh"
+run_ffmpeg "78983 --pub-seg-mode none"

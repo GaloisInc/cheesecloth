@@ -138,6 +138,7 @@ run_grit() {
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
             --skip-backend-validation \
+            --available-plugins '' \
             $out_dir/grit.cbor --boolean-sieve-ir-v2-out $out_dir/sieve \
             2>&1 | tee $out_dir/witness-checker.log
     )
@@ -171,15 +172,21 @@ run_ffmpeg() {
     mkdir -p "$cc_dir/out/ffmpeg"
     (
         cd "$cc_dir/MicroRAM"
+        if [ "$#" -lt 1 ]; then
+            args="78983 --priv-segs 6652"
+        else
+            args=$1
+        fi
         # 78983 steps with public pc (baseline)
         # args="78983 --priv-segs 6652"
         # no sparsity
         # args="78983 --priv-segs 6652 --sparsity 1"
         # no public-pc
-        args="78983 --pub-seg-mode none"
+        # args="78983 --pub-seg-mode none"
         stack run compile -- \
             --from-llvm ../ffmpeg/driver-link.ll \
             $args \
+            --regs 11 \
             -o ../out/ffmpeg/ffmpeg.cbor \
             --verbose \
             2>&1 | tee ../out/ffmpeg/microram.log
@@ -189,7 +196,8 @@ run_ffmpeg() {
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
             --skip-backend-validation \
-            $out_dir/ffmpeg.cbor --stats --sieve-ir-out $out_dir/sieve \
+            --available-plugins '' \
+            $out_dir/ffmpeg.cbor --boolean-sieve-ir-v2-out $out_dir/sieve \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -222,24 +230,32 @@ run_openssl() {
     build_openssl
     build_microram
     build_witness_checker
-    mkdir -p "$cc_dir/out/openssl"
+    out_dir="$cc_dir/out/openssl"
+    # out_dir="/mnt/HDD-9T/usenix2023-final/out/openssl"
+    mkdir -p $out_dir
     (
         cd "$cc_dir/MicroRAM"
+        if [ "$#" -lt 1 ]; then
+            args="1300000 --priv-segs 110000"
+        else
+            args=$1
+        fi
         stack run compile -- \
             --from-llvm ../openssl-driver/driver-link.ll \
-            1300000 --regs 11 --priv-segs 110000 \
+            $args \
+            --regs 11 \
             --mode leak-tainted \
-            -o ../out/openssl/openssl.cbor \
+            -o $out_dir/openssl.cbor \
             --verbose \
-            2>&1 | tee ../out/openssl/microram.log
+            2>&1 | tee $out_dir/microram.log
     )
     (
-        out_dir="$cc_dir/out/openssl"
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
             $out_dir/openssl.cbor --boolean-sieve-ir-v2-out $out_dir/sieve \
             --mode leak-tainted \
             --skip-backend-validation \
+            --available-plugins '' \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
