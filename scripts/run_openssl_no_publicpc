@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/common.sh"
+run_openssl "1300000 --pub-seg-mode none"
