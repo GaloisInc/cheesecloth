@@ -1,3 +1,10 @@
+# Cheesecloth
+
+Cheesecloth is a compilation pipeline for producing Zero-Knowledge (ZK) Proofs about LLVM (C, C++, Rust) programs.
+Cheesecloth enables analysts to prove that they know a vulnerability in a program, without revealing the details of the vulnerability or the inputs that exploit it.
+In addition, it can verify the execution of arbritrary LLVM programs in ZK.
+This toolchain accompanies the paper "Cheesecloth: Zero-Knowledge Proofs of Real-World Vulnerabilities" (Usenix 2023).
+
 This repo includes all the Cheesecloth tools and examples as submodules, along
 with scripts for building everything.
 
@@ -27,3 +34,19 @@ with scripts for building everything.
   ```
 
 See `scripts/common.sh` for details of the build steps for each component.
+
+# License
+
+[MIT License](/LICENSE)
+
+# Contributors
+
+- Santiago Cuéllar
+- James Parker
+- Stuart Pernsteiner
+
+# Acknowledgments
+
+This material is based upon work supported by the Defense Advanced Research Projects Agency (DARPA) under Con- tract No. HR001120C0085. Any opinions, findings, conclu- sions, or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the Defense Advanced Research Projects Agency (DARPA).
+
+Copyright © 2023 Galois, Inc.
