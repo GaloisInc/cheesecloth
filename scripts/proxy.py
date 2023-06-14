@@ -41,6 +41,7 @@ def worker(client, server, direction):
     if len(b) == 0:
       killp(client,server)
       return
+    # print("Intercepted bytes: ", len(b))
     try:
       if direction == CLIENT2SERVER:
         c2s += len(b)
@@ -57,15 +58,18 @@ def worker(client, server, direction):
   return
 
 def signalhandler(sn, sf):
+  # print("*** signalhandler ***")
   running = False
 
 def inthandler(sn, sf):
   global c2s
   global s2c
+  # print("*** inthandler ***")
 
   print("Client to server (bytes): ", c2s)
   print("Server to client (bytes): ", s2c)
-  print("Total (bytes): ", (c2s + s2c))
+  print("Total (bytes): ", (c2s + s2c), flush=True)
+  sys.stdout.flush()
   exit()
 
 def doProxyMain(port, remotehost, remoteport):
@@ -77,6 +81,7 @@ def doProxyMain(port, remotehost, remoteport):
     s.bind(("0.0.0.0", port))
     s.listen(1)
     workers = []
+    print("Starting proxy on: ", port)
     while running == True:
       k,a = s.accept()
       v = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
