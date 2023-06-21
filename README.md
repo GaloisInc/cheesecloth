@@ -47,6 +47,6 @@ See `scripts/common.sh` for details of the build steps for each component.
 
 # Acknowledgments
 
-This material is based upon work supported by the Defense Advanced Research Projects Agency (DARPA) under Con- tract No. HR001120C0085. Any opinions, findings, conclu- sions, or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the Defense Advanced Research Projects Agency (DARPA).
+This material is based upon work supported by the Defense Advanced Research Projects Agency (DARPA) under Contract No. HR001120C0085. Any opinions, findings, conclusions, or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the Defense Advanced Research Projects Agency (DARPA).
 
 Copyright © 2023 Galois, Inc.
