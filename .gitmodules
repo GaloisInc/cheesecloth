@@ -1,24 +1,24 @@
 [submodule "witness-checker"]
 	path = witness-checker
-	url = git@gitlab-ext.galois.com:fromager/cheesecloth/witness-checker.git
+	url = https://github.com/GaloisInc/witness-checker
 [submodule "MicroRAM"]
 	path = MicroRAM
-	url = git@gitlab-ext.galois.com:fromager/cheesecloth/MicroRAM.git
+	url = https://github.com/GaloisInc/MicroRAM
 [submodule "grit"]
 	path = grit
-	url = git@gitlab-ext.galois.com:fromager/cheesecloth/grit.git
+	url = https://github.com/GaloisInc/grit
 [submodule "ffmpeg"]
 	path = ffmpeg
-	url = git@gitlab-ext.galois.com:fromager/cheesecloth/ffmpeg.git
+	url = https://github.com/GaloisInc/ffmpeg
 [submodule "llvm-passes"]
 	path = llvm-passes
-	url = git@gitlab-ext.galois.com:fromager/cheesecloth/llvm-passes.git
+	url = https://github.com/GaloisInc/llvm-passes
 [submodule "picolibc"]
 	path = picolibc
-	url = git@gitlab-ext.galois.com:fromager/cheesecloth/picolibc.git
+	url = https://github.com/GaloisInc/picolibc
 [submodule "openssl"]
 	path = openssl
-	url = ../openssl.git
+	url = https://github.com/GaloisInc/openssl
 [submodule "openssl-driver"]
 	path = openssl-driver
-	url = ../openssl-driver.git
+	url = https://github.com/GaloisInc/openssl-driver
