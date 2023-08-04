@@ -24,4 +24,4 @@
 	url = git@gitlab-ext.galois.com:fromager/cheesecloth/openssl-driver.git
 [submodule "scuttlebutt-attack"]
 	path = scuttlebutt-attack
-	url = ../scuttlebutt-attack.git
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/scuttlebutt-attack.git
