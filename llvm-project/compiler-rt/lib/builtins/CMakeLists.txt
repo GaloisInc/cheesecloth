@@ -635,17 +635,17 @@ endif()
 set(powerpc64le_SOURCES ${powerpc64_SOURCES})
 
 set(riscv_SOURCES
-  riscv/save.S
-  riscv/restore.S
+  #riscv/save.S
+  #riscv/restore.S
   ${GENERIC_SOURCES}
   ${GENERIC_TF_SOURCES}
 )
 set(riscv32_SOURCES
-  riscv/mulsi3.S
+  #riscv/mulsi3.S
   ${riscv_SOURCES}
 )
 set(riscv64_SOURCES
-  riscv/muldi3.S
+  #riscv/muldi3.S
   ${riscv_SOURCES}
 )
 

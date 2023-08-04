@@ -1,0 +1,8 @@
+[package]
+name = "cheesecloth-alloc"
+version = "0.1.0"
+authors = ["Stuart Pernsteiner <spernsteiner@galois.com>"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
