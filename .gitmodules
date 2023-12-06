@@ -25,3 +25,12 @@
 [submodule "scuttlebutt-attack"]
 	path = scuttlebutt-attack
 	url = git@gitlab-ext.galois.com:fromager/cheesecloth/scuttlebutt-attack.git
+[submodule "openssl-sqrt"]
+	path = openssl-sqrt
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/openssl.git
+[submodule "openssl-sqrt-driver"]
+	path = openssl-sqrt-driver
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/openssl-sqrt-driver.git
+[submodule "sym-proof"]
+	path = sym-proof
+	url = git@gitlab-ext.galois.com:fromager/cheesecloth/sym-proof.git

@@ -211,8 +211,9 @@ run_grit() {
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
             $out_dir/grit.cbor \
-            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
             --skip-backend-validation \
+            --available-plugins mux_v0,permutation_check_v1 \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -261,8 +262,9 @@ run_ffmpeg() {
         cd "$cc_dir"
         time witness-checker/target/release/cheesecloth \
             $out_dir/ffmpeg.cbor \
-            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
             --skip-backend-validation \
+            --available-plugins mux_v0,permutation_check_v1 \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -320,7 +322,7 @@ run_matrixmul_simple() {
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
             $out_dir/matrixmul-simple.cbor \
-            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
@@ -346,8 +348,10 @@ run_openssl() {
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
             $out_dir/openssl.cbor \
-            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
             --skip-backend-validation \
+            --available-plugins mux_v0,permutation_check_v1 \
+            --mode leak-tainted \
             2>&1 | tee $out_dir/witness-checker.log
     )
 }
@@ -388,7 +392,7 @@ run_rust_example() {
         cd "$cc_dir"
         /usr/bin/time witness-checker/target/release/cheesecloth \
             $out_dir/rust-example.cbor \
-            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
@@ -598,8 +602,382 @@ run_scuttlebutt() {
             $out_dir/ssb.cbor \
             --validate-only \
             --expect-write 0xfffffffffffffff0 \
-            --boolean-sieve-ir-v2-out $out_dir/sieve \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
+            --skip-backend-validation \
+            --available-plugins mux_v0,permutation_check_v1 \
+            2>&1 | tee $out_dir/witness-checker.log
+    )
+}
+
+
+# grit sym-proof build
+
+proof_grit_driver_riscv() {
+    if ! [ -f "$cc_dir/grit/driver-link.s" ]; then
+        build_grit
+    fi
+}
+
+proof_grit_concrete_cbor() {
+    proof_grit_driver_riscv
+    build_microram
+    local out_dir="$cc_dir/out/proof_grit"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        if ! [ -f "$out_dir/grit_concrete.cbor" ]; then
+            # We use `--domain-input-riscv` instead of `--riscv` to get
+            # consistent linking with the combined build below.  The two modes
+            # put globals at different addresses, causing a divergence in the
+            # proof.
+            /usr/bin/time stack exec compile -- \
+                --domain concrete \
+                --domain-input-riscv ../grit/driver-link.s \
+                1000 \
+                -o $out_dir/grit_concrete.cbor \
+                --verbose \
+                2>&1 | tee $out_dir/microram-concrete.log
+        fi
+    )
+}
+
+proof_grit_advice() {
+    proof_grit_concrete_cbor
+    local out_dir="$cc_dir/out/proof_grit"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/sym-proof"
+        if ! [ -f "$out_dir/advice/linear.cbor" ]; then
+            SYM_PROOF_ADVICE_DIR="$out_dir/advice" \
+                ./gen_advice.sh grit \
+                "$out_dir/grit_concrete.cbor" \
+                2>&1 | tee "$out_dir/sym-proof-advice.log"
+        fi
+    )
+}
+
+# Copy generated code into `sym-proof/gen/`.  Unfortunately, Rust doesn't allow
+# specifying module paths with an environment variable (`#[path = env!(...)]`
+# is a syntax error).
+proof_grit_prepare_generated_code() {
+    local out_dir="$cc_dir/out/proof_grit"
+    mkdir -p "$cc_dir/sym-proof/gen/"
+    cp -v "$out_dir/gen/"*.rs "$cc_dir/sym-proof/gen/"
+}
+
+proof_grit_generated_code() {
+    proof_grit_advice
+    local out_dir="$cc_dir/out/proof_grit"
+    mkdir -p $out_dir/gen
+    (
+        cd "$cc_dir/sym-proof"
+        if ! [ -f "$out_dir/gen/grit_program.rs" ]; then
+            python3 prog_to_rust.py \
+                "$out_dir/grit_concrete.cbor" \
+                >"$out_dir/gen/grit_program.rs"
+        fi
+        if ! [ -f "$out_dir/gen/term_table.rs" ]; then
+            python3 term_table_to_rust.py \
+                "$out_dir/advice/term_table.cbor" \
+                >"$out_dir/gen/term_table.rs"
+        fi
+        if ! [ -f "$out_dir/gen/grit_hardcoded_snapshot.rs" ]; then
+            proof_grit_prepare_generated_code
+            SYM_PROOF_ADVICE_DIR="$out_dir/advice" \
+                cargo run --bin interp_grit_microram --features microram_api,verbose,inline-secrets
+            python3 hardcoded_snapshot_to_rust.py \
+                "$out_dir/advice/hardcoded_snapshot.cbor" \
+                >"$out_dir/gen/grit_hardcoded_snapshot.rs"
+        fi
+    )
+}
+
+proof_grit_test_native() {
+    proof_grit_advice
+    proof_grit_generated_code
+    proof_grit_prepare_generated_code
+    local out_dir="$cc_dir/out/proof_grit"
+    (
+        cd "$cc_dir/sym-proof"
+        SYM_PROOF_ADVICE_DIR="$out_dir/advice" \
+            cargo run --bin interp_grit_microram \
+            --features microram_api,verbose,inline-secrets,microram_hardcoded_snapshot
+    )
+}
+
+proof_grit_test_microram() {
+    proof_grit_advice
+    proof_grit_generated_code
+    proof_grit_prepare_generated_code
+    local out_dir="$cc_dir/out/proof_grit"
+    (
+        cd "$cc_dir/sym-proof"
+        cc_instrument=1 cc_extra_features=microram_hardcoded_snapshot \
+            ./build_microram.sh grit
+        mv -v build/interp_grit_microram.bc build/interp_grit_microram_hardcoded.bc
+        mv -v build/interp_grit_microram.ll build/interp_grit_microram_hardcoded.ll
+        mv -v build/interp_grit_microram.s build/interp_grit_microram_hardcoded.s
+    )
+}
+
+proof_grit_sym_proof_riscv() {
+    proof_grit_generated_code
+    proof_grit_prepare_generated_code
+    local out_dir="$cc_dir/out/proof_grit"
+    (
+        cd "$cc_dir/sym-proof"
+        if ! [ -f "build/interp_grit_microram.s" ]; then
+            ./build_microram.sh grit
+        fi
+    )
+}
+
+proof_grit_cbor() {
+    build_microram
+    proof_grit_sym_proof_riscv
+    local out_dir="$cc_dir/out/proof_grit"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        #if ! [ -f "$out_dir/proof_grit.cbor" ]; then
+            /usr/bin/time stack exec compile -- \
+                --domain concrete \
+                --domain-input-riscv ../grit/driver-link.s \
+                --spontaneous-jump .LBB1_5,0 \
+                --domain symbolic \
+                --domain-input-riscv ../sym-proof/build/interp_grit_microram.s \
+                --domain-spontaneous \
+                --advice-file "$out_dir/advice/linear.cbor" \
+                260000 \
+                -o $out_dir/proof_grit.cbor \
+                --verbose \
+                2>&1 | tee $out_dir/microram.log
+        #fi
+    )
+}
+
+run_proof_grit() {
+    proof_grit_cbor
+    build_witness_checker
+    local out_dir="$cc_dir/out/proof_grit"
+    mkdir -p "$out_dir"
+    (
+        cd "$cc_dir"
+        time witness-checker/target/release/cheesecloth \
+            $out_dir/proof_grit.cbor \
+            --validate-only \
+            --expect-write 0xfffffffffffffff0 \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
+            --available-plugins mux_v0,permutation_check_v1 \
             --skip-backend-validation \
             2>&1 | tee $out_dir/witness-checker.log
     )
+}
+
+clean_proof_grit() {
+    (
+        cd "$cc_dir/sym-proof"
+        rm -f build/interp_grit_microram.*
+    )
+    local out_dir="$cc_dir/out/proof_grit"
+    rm -rf "$out_dir/advice/" "$out_dir/gen/"
+}
+
+
+# bn_sqrt sym-proof build
+
+proof_sqrt_driver_riscv() {
+    build_llvm_passes
+    build_picolibc
+    build_compiler_rt
+    local out_dir="$cc_dir/out/bn_sqrt"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/openssl-sqrt"
+        if ! [ -f build/libcrypto.a ]; then
+            mkdir -p build
+            cd build
+            ../fromager-config.sh
+            ../fromager-build.sh
+        fi
+    )
+    (
+        cd "$cc_dir/openssl-sqrt-driver"
+        if ! [ -f build/driver.s ]; then
+            ./build.sh
+        fi
+    )
+}
+
+proof_sqrt_concrete_cbor() {
+    proof_sqrt_driver_riscv
+    build_microram
+    local out_dir="$cc_dir/out/proof_sqrt"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        if ! [ -f "$out_dir/sqrt_concrete.cbor" ]; then
+            # We use `--domain-input-riscv` instead of `--riscv` to get
+            # consistent linking with the combined build below.  The two modes
+            # put globals at different addresses, causing a divergence in the
+            # proof.
+            /usr/bin/time stack exec compile -- \
+                --domain concrete \
+                --domain-input-riscv ../openssl-sqrt-driver/build/driver.s \
+                6000000 \
+                -o $out_dir/sqrt_concrete.cbor \
+                --verbose \
+                2>&1 | tee $out_dir/microram-concrete.log
+        fi
+    )
+}
+
+proof_sqrt_advice() {
+    proof_sqrt_concrete_cbor
+    local out_dir="$cc_dir/out/proof_sqrt"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/sym-proof"
+        if ! [ -f "$out_dir/advice/linear.cbor" ]; then
+            SYM_PROOF_ADVICE_DIR="$out_dir/advice" \
+                ./gen_advice.sh sqrt \
+                "$out_dir/sqrt_concrete.cbor" \
+                2>&1 | tee "$out_dir/sym-proof-advice.log"
+        fi
+    )
+}
+
+# Copy generated code into `sym-proof/gen/`.  Unfortunately, Rust doesn't allow
+# specifying module paths with an environment variable (`#[path = env!(...)]`
+# is a syntax error).
+proof_sqrt_prepare_generated_code() {
+    local out_dir="$cc_dir/out/proof_sqrt"
+    mkdir -p "$cc_dir/sym-proof/gen/"
+    cp -v "$out_dir/gen/"*.rs "$cc_dir/sym-proof/gen/"
+}
+
+proof_sqrt_generated_code() {
+    proof_sqrt_advice
+    local out_dir="$cc_dir/out/proof_sqrt"
+    mkdir -p $out_dir/gen
+    (
+        cd "$cc_dir/sym-proof"
+        if ! [ -f "$out_dir/gen/sqrt_program.rs" ]; then
+            python3 prog_to_rust.py \
+                "$out_dir/sqrt_concrete.cbor" \
+                >"$out_dir/gen/sqrt_program.rs"
+        fi
+        if ! [ -f "$out_dir/gen/term_table.rs" ]; then
+            python3 term_table_to_rust.py \
+                "$out_dir/advice/term_table.cbor" \
+                >"$out_dir/gen/term_table.rs"
+        fi
+        if ! [ -f "$out_dir/gen/sqrt_hardcoded_snapshot.rs" ]; then
+            proof_sqrt_prepare_generated_code
+            SYM_PROOF_ADVICE_DIR="$out_dir/advice" \
+                cargo run --bin interp_sqrt_microram --features microram_api,verbose,inline-secrets
+            python3 hardcoded_snapshot_to_rust.py \
+                "$out_dir/advice/hardcoded_snapshot.cbor" \
+                >"$out_dir/gen/sqrt_hardcoded_snapshot.rs"
+        fi
+    )
+}
+
+proof_sqrt_test_native() {
+    proof_sqrt_advice
+    proof_sqrt_generated_code
+    proof_sqrt_prepare_generated_code
+    local out_dir="$cc_dir/out/proof_sqrt"
+    (
+        cd "$cc_dir/sym-proof"
+        SYM_PROOF_ADVICE_DIR="$out_dir/advice" \
+            cargo run --bin interp_sqrt_microram \
+            --features microram_api,verbose,inline-secrets,microram_hardcoded_snapshot
+    )
+}
+
+proof_sqrt_test_microram() {
+    proof_sqrt_advice
+    proof_sqrt_generated_code
+    proof_sqrt_prepare_generated_code
+    local out_dir="$cc_dir/out/proof_sqrt"
+    (
+        cd "$cc_dir/sym-proof"
+        cc_instrument=1 cc_extra_features=microram_hardcoded_snapshot \
+            ./build_microram.sh sqrt
+        mv -v build/interp_sqrt_microram.bc build/interp_sqrt_microram_hardcoded.bc
+        mv -v build/interp_sqrt_microram.ll build/interp_sqrt_microram_hardcoded.ll
+        mv -v build/interp_sqrt_microram.s build/interp_sqrt_microram_hardcoded.s
+    )
+}
+
+proof_sqrt_sym_proof_riscv() {
+    proof_sqrt_generated_code
+    proof_sqrt_prepare_generated_code
+    local out_dir="$cc_dir/out/proof_sqrt"
+    (
+        cd "$cc_dir/sym-proof"
+        if ! [ -f "build/interp_sqrt_microram.s" ]; then
+            ./build_microram.sh sqrt
+        fi
+    )
+}
+
+proof_sqrt_cbor() {
+    build_microram
+    proof_sqrt_sym_proof_riscv
+    local out_dir="$cc_dir/out/proof_sqrt"
+    mkdir -p $out_dir
+    (
+        cd "$cc_dir/MicroRAM"
+        #if ! [ -f "$out_dir/proof_sqrt.cbor" ]; then
+            /usr/bin/time stack exec compile -- \
+                --domain concrete \
+                --domain-input-riscv ../openssl-sqrt-driver/build/driver.s \
+                --spontaneous-jump .LBB848_731,1 \
+                --domain symbolic \
+                --domain-input-riscv ../sym-proof/build/interp_sqrt_microram.s \
+                --domain-spontaneous \
+                --advice-file "$out_dir/advice/linear.cbor" \
+                11000000 \
+                -o $out_dir/proof_sqrt.cbor \
+                --verbose \
+                2>&1 | tee $out_dir/microram.log
+        #fi
+    )
+}
+
+run_proof_sqrt() {
+    proof_sqrt_cbor
+    build_witness_checker
+    local out_dir="$cc_dir/out/proof_sqrt"
+    mkdir -p "$out_dir"
+    (
+        cd "$cc_dir"
+        time witness-checker/target/release/cheesecloth \
+            $out_dir/proof_sqrt.cbor \
+            --validate-only \
+            --expect-write 0xfffffffffffffff0 \
+            --boolean-sieve-ir-v3-out $out_dir/sieve \
+            --available-plugins mux_v0,permutation_check_v1 \
+            --skip-backend-validation \
+            2>&1 | tee $out_dir/witness-checker.log
+    )
+}
+
+clean_proof_sqrt() {
+    (
+        cd "$cc_dir/openssl-sqrt"
+        rm -rf build/
+    )
+    (
+        cd "$cc_dir/openssl-sqrt-driver"
+        rm -rf build/
+    )
+    (
+        cd "$cc_dir/sym-proof"
+        rm -f build/interp_sqrt_microram.*
+    )
+    local out_dir="$cc_dir/out/proof_sqrt"
+    rm -rf "$out_dir/advice/" "$out_dir/gen/"
 }
