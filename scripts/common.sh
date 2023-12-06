@@ -396,22 +396,37 @@ run_rust_example() {
 
 
 # Scuttlebutt MicroRAM invocations
-scuttlebutt_microram_attacker() {
+
+scuttlebutt_microram_attacker_common() {
+    local suffix=$1
+    local kernel_attacker_name=$2
+    local trace_length=$3
     # Should be run from the MicroRAM/ directory
     out_dir="$cc_dir/out/scuttlebutt"
-    echo ' >>> microram: attacker'
+    echo ' >>> microram: attacker (with $kernel_attacker_name)'
     stack exec compile -- \
         --domain attacker \
         --domain-input-riscv ../scuttlebutt-attack/build/attacker.s \
         --domain-secret 22000,160 \
         --domain kernel \
-        --domain-input-riscv ../scuttlebutt-attack/build/kernel_attacker.s \
+        --domain-input-riscv ../scuttlebutt-attack/build/$kernel_attacker_name.s \
         --domain-privileged \
-        110000 \
+        $trace_length \
         --pub-seg-mode none \
-        -o $out_dir/ssb-attacker.cbor \
+        -o $out_dir/ssb-attacker$suffix.cbor \
         --verbose \
-        2>&1 | tee $out_dir/microram-attacker.log
+        2>&1 | tee $out_dir/microram-attacker$suffix.log
+}
+
+scuttlebutt_microram_attacker_dummy() {
+    # We build with dummy secrets just to get the final MicroRAM code for the
+    # attacker, so we can commit to it.  The trace is ignored, so don't need to
+    # execute the whole trace.
+    scuttlebutt_microram_attacker_common '-dummy' kernel_attacker_dummy 100
+}
+
+scuttlebutt_microram_attacker() {
+    scuttlebutt_microram_attacker_common '' kernel_attacker 110000
 }
 
 scuttlebutt_microram_victim() {
@@ -452,12 +467,12 @@ build_scuttlebutt_attacker() {
         cd "$cc_dir/scuttlebutt-attack"
         ./build.sh attacker
         ./build.sh secrets_dummy
-        ssb_use_dummy_secrets=1 ./build.sh kernel_attacker
+        ./build.sh kernel_attacker_dummy
     )
 }
 
-# Run MicroRAM to produce `ssb-attacker.cbor`.
-build_scuttlebutt_attacker_cbor() {
+# Run MicroRAM to produce `ssb-attacker-dummy.cbor`.
+build_scuttlebutt_attacker_dummy_cbor() {
     build_scuttlebutt_attacker
     build_microram
     build_witness_checker
@@ -465,20 +480,20 @@ build_scuttlebutt_attacker_cbor() {
     mkdir -p $out_dir
     (
         cd "$cc_dir/MicroRAM"
-        scuttlebutt_microram_attacker
+        scuttlebutt_microram_attacker_dummy
     )
 }
 
 # Regenerate scuttlebutt parameters after building a fresh `attacker.s`.
 regenerate_scuttlebutt() {
-    build_scuttlebutt_attacker_cbor
+    build_scuttlebutt_attacker_dummy_cbor
 
     build_witness_checker
     (
         cd "$cc_dir/scuttlebutt-attack"
         # Update commitment randomness and seed, and create `commitment.env`.
         COMMITMENT_TOOL=$cc_dir/witness-checker/target/release/commitment_tool \
-            python3 update_commitment.py $cc_dir/out/scuttlebutt/ssb-attacker.cbor
+            python3 update_commitment.py $cc_dir/out/scuttlebutt/ssb-attacker-dummy.cbor
         # Record communication trace and update secrets.
         ./record.sh
     )
