@@ -33,4 +33,4 @@
 	url = https://github.com/GaloisInc/openssl-sqrt-driver
 [submodule "sym-proof"]
 	path = sym-proof
-	url = https://github.com/GaloisInc/sym-proof
+	url = https://github.com/GaloisInc/cheesecloth-sym-proof
